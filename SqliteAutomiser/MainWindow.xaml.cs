@@ -5,13 +5,6 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-//using System.Windows.Data;
-//using System.Windows.Documents;
-//using System.Windows.Input;
-//using System.Windows.Media;
-//using System.Windows.Media.Imaging;
-//using System.Windows.Navigation;
-//using System.Windows.Shapes;
 using System.Data.SQLite;
 using System.IO;
 using LumenWorks.Framework.IO.Csv;
@@ -56,8 +49,8 @@ namespace SqliteAutomiser
 
         private void Log(string logMessage, bool alsoPrint = true)
         {
-            if (!logMessage.EndsWith("\n"))
-                logMessage = logMessage + '\n';
+            if (logMessage.EndsWith("\n"))
+                logMessage = logMessage.Remove(logMessage.Length - 1);
 
             using (StreamWriter w = File.AppendText(Properties.Settings.Default.LOGFILE))
             {
@@ -66,7 +59,7 @@ namespace SqliteAutomiser
             }
             if (alsoPrint == true)
             {
-                textBox.Dispatcher.BeginInvoke(new UpdateTextCallback(UpdateText), new object[] { logMessage }); //to update textBox from another thread
+                textBox.Dispatcher.BeginInvoke(new UpdateTextCallback(UpdateText), new object[] { logMessage + '\n'}); //to update textBox from another thread
             }
         }
 
@@ -213,7 +206,7 @@ namespace SqliteAutomiser
             if (maxCount == 0)
                 outputstr = "Unable to detect csv separator";
             else if (separators[separatorsCount.IndexOf(maxCount)] == '\t')
-                outputstr = "Detected separator: T based on " + rowCount + " rows (counts: ";
+                outputstr = "Detected separator: TAB based on " + rowCount + " rows (counts: ";
             else
                 outputstr = "Detected separator: " + separators[separatorsCount.IndexOf(maxCount)] + " based on " + rowCount + " rows(counts: ";
 
@@ -234,9 +227,9 @@ namespace SqliteAutomiser
             return maxCount == 0 ? '\0' : separators[separatorsCount.IndexOf(maxCount)];
         }
 
+        //Creates database table based on header row of the text file. Now stupid void that creates all cols with double affinity, works for now but can be improved for more advanced col detection
         private void createTableFromFile(SQLiteConnection conn, string filepath, string table)
         {
-            // now stupid void that creates all cols with double affinity, works for now but can be improved for more advanced col detection
             string commandText = "CREATE TABLE " + table + " (";
             //int columnCount = 0;
 
@@ -330,7 +323,7 @@ namespace SqliteAutomiser
             Debug.WriteLine(sw.Elapsed.Minutes + " Min(s) " + sw.Elapsed.Seconds + " Sec(s)");
         }
 
-        //Function to check text file for correct amount of columns on each row, can be improved with additional checks
+        //Check text file for correct amount of columns on each row, can be improved with additional checks
         private void checkFile(SQLiteConnection conn, string filepath, string table)
         {
             Properties.Settings.Default.IMPORTCOLUMNSEPARATOR = detectFileSeparator(new StreamReader(filepath), 5); //separator detection for each file
@@ -349,7 +342,7 @@ namespace SqliteAutomiser
             {
                 csv.MissingFieldAction = MissingFieldAction.ReplaceByNull; // not really needed here, but works with detection
                 string[] headers = csv.GetFieldHeaders();
-                Log("Column count: " + csv.FieldCount + " headers: " + string.Join(",", headers));
+                Log("Column count is " + csv.FieldCount + " , headers: " + string.Join(",", headers));
                 rowind++;
 
                 while (csv.ReadNextRecord())
@@ -365,7 +358,10 @@ namespace SqliteAutomiser
                     }
                     rowind++;
                     if (rowind == notifyRow)
+                    {
+                        notifyRow = notifyRow + notifyInterval;
                         Log("Checked " + rowind + " rows...");
+                    }
                 }
             }
 
@@ -375,35 +371,36 @@ namespace SqliteAutomiser
 
         private void importFileToDb(SQLiteConnection conn, string filepath, string table )
         {
-            Properties.Settings.Default.IMPORTCOLUMNSEPARATOR = detectFileSeparator(new StreamReader(filepath), 5); //separator detection for each file
-
-            SQLiteCommand command = new SQLiteCommand("PRAGMA table_info(" + table + ");", conn);
-            string insertText = "INSERT INTO " + table + " (";
-            int columnCount = 0;
-
-            SQLiteDataReader reader = command.ExecuteReader();
-            while (reader.Read())
+            try
             {
-                insertText = insertText + '"' + reader[1] + '"' + ',';
-                columnCount++;
-            }
-            reader.Close();
+                Properties.Settings.Default.IMPORTCOLUMNSEPARATOR = detectFileSeparator(new StreamReader(filepath), 5); //separator detection for each file
 
-            Log("Importing file: " + filepath + " to table: " + table + " columns expected: " + columnCount, true);
+                SQLiteCommand command = new SQLiteCommand("PRAGMA table_info(" + table + ");", conn);
+                string insertText = "INSERT INTO " + table + " (";
+                int columnCount = 0;
 
-            SQLiteTransaction trans = conn.BeginTransaction();
-            command.Transaction = trans;
+                SQLiteDataReader reader = command.ExecuteReader();
+                while (reader.Read())
+                {
+                    insertText = insertText + '"' + reader[1] + '"' + ',';
+                    columnCount++;
+                }
+                reader.Close();
 
-            int rowind = 1;
-            int rowsWithMissingColumns = 0;
-            int notifyInterval = 100000;
-            int notifyRow = notifyInterval;
+                Log("Importing file: " + filepath + " to table: " + table + " columns expected: " + columnCount, true);
 
-            Stopwatch sw = new Stopwatch();
-            sw.Start();
+                SQLiteTransaction trans = conn.BeginTransaction();
+                command.Transaction = trans;
 
-            using (CsvReader csv = new CsvReader(new StreamReader(filepath), true, Properties.Settings.Default.IMPORTCOLUMNSEPARATOR))
-            {
+                int rowind = 1;
+                int rowsWithMissingColumns = 0;
+                int notifyInterval = 100000;
+                int notifyRow = notifyInterval;
+
+                Stopwatch sw = new Stopwatch();
+                sw.Start();
+
+                CsvReader csv = new CsvReader(new StreamReader(filepath), true, Properties.Settings.Default.IMPORTCOLUMNSEPARATOR);
                 //int fieldCount = csv.FieldCount;
                 csv.MissingFieldAction = MissingFieldAction.ReplaceByNull;
                 string[] headers = csv.GetFieldHeaders();
@@ -428,8 +425,6 @@ namespace SqliteAutomiser
 
                 insertText = insertText.Remove(insertText.Length - 1) + ");";
 
-                //textBox.AppendText('\n' + "Importing file: " + filepath);
-
                 command.CommandText = insertText;
 
                 List<SQLiteParameter> parameters = new List<SQLiteParameter>();
@@ -449,7 +444,7 @@ namespace SqliteAutomiser
                         if (csv[colind] == null)
                         {
                             rowsWithMissingColumns++;
-                            break;
+                            par.Value = DBNull.Value;
                         }
                         else if (csv[colind] == "")
                             par.Value = DBNull.Value;
@@ -482,11 +477,16 @@ namespace SqliteAutomiser
                         command.Transaction = trans;
                     }
                 }
-            }
+                csv.Dispose();
+                trans.Commit();
+                sw.Stop();
+                Log("File: " + filepath + " with " + rowind + " rows (" + rowsWithMissingColumns + " with missing columns) imported to table: " + table + " in: " + sw.Elapsed.Minutes + " Min(s) " + sw.Elapsed.Seconds + " Sec(s)", true);
 
-            trans.Commit();
-            sw.Stop();
-            Log("File: " + filepath + " with " + rowind + " rows (" + rowsWithMissingColumns + " with missing columns) imported to table: " + table + " in: " + sw.Elapsed.Minutes + " Min(s) " + sw.Elapsed.Seconds + " Sec(s)", true);
+            }
+            catch (IOException ex)
+            {
+                Log(ex.Message.ToString());
+            }
         }
 
         private void runSQL(SQLiteConnection conn, string sqlFileOrString)
