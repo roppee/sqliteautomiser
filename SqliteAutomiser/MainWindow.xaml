@@ -11,7 +11,7 @@
         <Button x:Name="button" Content="Import" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="75" Click="import_Click"/>
         <Button x:Name="button1" Content="Calculate" HorizontalAlignment="Left" Margin="90,10,0,0" VerticalAlignment="Top" Width="75" Click="calculate_Click"/>
         <Button x:Name="button2" Content="Export" HorizontalAlignment="Left" Margin="170,10,0,0" VerticalAlignment="Top" Width="75" Click="export_Click"/>
-        <TextBox x:Name="textBox" HorizontalAlignment="Left" Height="299" Margin="10,117,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="853"/>
+        <TextBox x:Name="textBox" HorizontalAlignment="Left" Height="299" Margin="10,117,0,0" TextWrapping="Wrap" Text="" VerticalAlignment="Top" Width="853" HorizontalScrollBarVisibility="Visible" VerticalScrollBarVisibility="Auto"/>
         <Button x:Name="button_db" Content="Change" HorizontalAlignment="Left" Margin="788,8,0,0" VerticalAlignment="Top" Width="75" Click="button_db_Click"/>
         <Button x:Name="button_sqldir" Content="Change" HorizontalAlignment="Left" Margin="788,33,0,0" VerticalAlignment="Top" Width="75" Click="button_sqldir_Click"/>
         <Button x:Name="button_importdir" Content="Change" HorizontalAlignment="Left" Margin="788,57,0,0" VerticalAlignment="Top" Width="75" Click="button_importdir_Click"/>

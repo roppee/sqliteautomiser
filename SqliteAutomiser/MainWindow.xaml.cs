@@ -59,7 +59,8 @@ namespace SqliteAutomiser
             }
             if (alsoPrint == true)
             {
-                textBox.Dispatcher.BeginInvoke(new UpdateTextCallback(UpdateText), new object[] { logMessage + '\n'}); //to update textBox from another thread
+                textBox.Dispatcher.BeginInvoke(new UpdateTextCallback(UpdateText), new object[] { string.Format("{0} {1} {2} {3}", DateTime.Now.ToShortDateString(),
+                    DateTime.Now.ToLongTimeString(), ":", logMessage) + '\n' }); //to update textBox from another thread
             }
         }
 
@@ -309,7 +310,7 @@ namespace SqliteAutomiser
                 //    Debug.Print("row: " + rowind);
                 //}
             }
-            textBox.AppendText('\n' + "Creating table based on file: " + filepath);
+            Log("Creating table based on file: " + filepath);
 
             SQLiteCommand command = new SQLiteCommand(commandText, conn);
             SQLiteTransaction trans = conn.BeginTransaction();
@@ -319,8 +320,7 @@ namespace SqliteAutomiser
             trans.Commit();
 
             sw.Stop();
-            textBox.AppendText('\n' + "Done in: " + sw.Elapsed.Minutes + " Min(s) " + sw.Elapsed.Seconds + " Sec(s)");
-            Debug.WriteLine(sw.Elapsed.Minutes + " Min(s) " + sw.Elapsed.Seconds + " Sec(s)");
+            Log( "Done in: " + sw.Elapsed.Minutes + " Min(s) " + sw.Elapsed.Seconds + " Sec(s)");
         }
 
         //Check text file for correct amount of columns on each row, can be improved with additional checks
@@ -360,13 +360,13 @@ namespace SqliteAutomiser
                     if (rowind == notifyRow)
                     {
                         notifyRow = notifyRow + notifyInterval;
-                        Log("Checked " + rowind + " rows...");
+                        Log("Checked " + string.Format("{0:#,0}", rowind) + " rows...");
                     }
                 }
             }
 
             sw.Stop();
-            Log("File: " + filepath + " with " + rowind + " rows (" + rowsWithMissingColumns + " with missing columns) checked in: " + sw.Elapsed.Minutes + " Min(s) " + sw.Elapsed.Seconds + " Sec(s)", true);
+            Log("File: " + filepath + " with " + string.Format("{0:#,0}", rowind) + " rows (" + rowsWithMissingColumns + " with missing columns) checked in: " + sw.Elapsed.Minutes + " Min(s) " + sw.Elapsed.Seconds + " Sec(s)", true);
         }
 
         private void importFileToDb(SQLiteConnection conn, string filepath, string table )
@@ -472,7 +472,7 @@ namespace SqliteAutomiser
                     {
                         notifyRow = notifyRow + notifyInterval;
                         trans.Commit();
-                        Log("Imported " + rowind + " rows...");
+                        Log("Imported " + string.Format("{0:#,0}", rowind) + " rows...");
                         trans = conn.BeginTransaction();
                         command.Transaction = trans;
                     }
@@ -480,7 +480,7 @@ namespace SqliteAutomiser
                 csv.Dispose();
                 trans.Commit();
                 sw.Stop();
-                Log("File: " + filepath + " with " + rowind + " rows (" + rowsWithMissingColumns + " with missing columns) imported to table: " + table + " in: " + sw.Elapsed.Minutes + " Min(s) " + sw.Elapsed.Seconds + " Sec(s)", true);
+                Log("File: " + filepath + " with " + string.Format("{0:#,0}", rowind) + " rows (" + rowsWithMissingColumns + " with missing columns) imported to table: " + table + " in: " + sw.Elapsed.Minutes + " Min(s) " + sw.Elapsed.Seconds + " Sec(s)", true);
 
             }
             catch (IOException ex)
@@ -544,8 +544,8 @@ namespace SqliteAutomiser
                     }
                     catch (SQLiteException ex)
                     {
-                        Debug.WriteLine("Error in sql command:" + '\n' + com);
-                        Debug.Print(ex.Message.ToString());
+                        Log("Error in sql command:" + '\n' + com);
+                        Log(ex.Message.ToString());
                     }
                 }
         }
@@ -555,20 +555,50 @@ namespace SqliteAutomiser
         {
             await Task.Run(() =>
             {
-                SQLiteConnection conn = openDBconn();
-                string[] worklist = File.ReadAllLines(worklistpath);
-                foreach (string line in worklist)
+                try
                 {
-                    if (line == "import")
-                        processImportDir(conn, Properties.Settings.Default.DEFIMPORTDIR + @"\");
-                    else if (line == "check")
-                        processImportDir(conn, Properties.Settings.Default.DEFIMPORTDIR + @"\", true);
-                    else if (exportpath == "")
-                        runSQL(conn, @Properties.Settings.Default.DEFSQLFILEDIR + "/" + line);
-                    else
-                        exportSQL(conn, @Properties.Settings.Default.DEFSQLFILEDIR + "/" + line, line.Replace(".sql", ""));
+                    string[] worklist = File.ReadAllLines(worklistpath);
+                    SQLiteConnection conn = openDBconn();
+                    foreach (string line in worklist)
+                    {
+                        if (line == "import")
+                        {
+
+                            if (Directory.Exists(Properties.Settings.Default.DEFIMPORTDIR + @"\"))
+                                processImportDir(conn, Properties.Settings.Default.DEFIMPORTDIR + @"\");
+                            else
+                                Log("Cannot find import dir: " + Properties.Settings.Default.DEFIMPORTDIR + @"\" + " skipping import command.");
+                        }
+                        else if (line == "check")
+                        {
+                            if (Directory.Exists(Properties.Settings.Default.DEFIMPORTDIR + @"\"))
+                                processImportDir(conn, Properties.Settings.Default.DEFIMPORTDIR + @"\", true);
+                            else
+                                Log("Cannot find import dir: " + Properties.Settings.Default.DEFIMPORTDIR + @"\" + " skipping check command.");
+                        }
+                        else if (exportpath == "")
+                        {
+                            if (Directory.Exists(Properties.Settings.Default.DEFSQLFILEDIR + @"\"))
+                                runSQL(conn, Properties.Settings.Default.DEFSQLFILEDIR + @"\" + line);
+                            else
+                                Log("Cannot find SQL file dir: " + Properties.Settings.Default.DEFSQLFILEDIR + @"\" + " skipping running sql:" + line);
+                        }
+                        else
+                        {
+                            if (Directory.Exists(Properties.Settings.Default.DEFSQLFILEDIR + @"\"))
+                                exportSQL(conn, @Properties.Settings.Default.DEFSQLFILEDIR + "/" + line, line.Replace(".sql", ""));
+                            else
+                                Log("Cannot find SQL file dir: " + Properties.Settings.Default.DEFSQLFILEDIR + @"\" + " skipping exporting sql:" + line);
+                        }
+
+                    }
+                    conn.Close();
                 }
-                conn.Close();
+                catch (Exception ex)
+                {
+                    Log("Reading worklist :" + worklistpath + " failed with exception:");
+                    Log(ex.Message.ToString());
+                }
             });
         }
 
@@ -749,7 +779,7 @@ namespace SqliteAutomiser
                                 catch(Exception ex)
                                 {
                                     par.Value = reader[col];
-                                    Log("Double and String cast failed on row: " + rowind + " col: " + reader.GetName(col) + " value: " + reader[col] + " with following exception:");
+                                    Log("Double and String cast failed on row: " + string.Format("{0:#,0}", rowind) + " col: " + reader.GetName(col) + " value: " + reader[col] + " with following exception:");
                                     Log(ex.Message.ToString());
                                 }
                             }
@@ -765,7 +795,7 @@ namespace SqliteAutomiser
                     catch (Exception ex)
                     {
                         Log(ex.Message.ToString(), true);
-                        Log("Exception on output row " + rowind + ":", true);
+                        Log("Exception on output row " + string.Format("{0:#,0}", rowind) + ":", true);
                         col = 0;
                         StringBuilder colHeaders = new StringBuilder();
                         StringBuilder colValues = new StringBuilder();
@@ -782,7 +812,7 @@ namespace SqliteAutomiser
                     rowind = rowind + 1;
                     if (rowind == notifyRow)
                     {
-                        Log("Exported " + rowind + " rows...", true);
+                        Log("Exported " + string.Format("{0:#,0}", rowind) + " rows...", true);
                         notifyRow = notifyRow + notifyInterval;
                         trans.Commit();
                         trans = outputconn.BeginTransaction();
