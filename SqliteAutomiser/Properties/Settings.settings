@@ -2,19 +2,16 @@
 <SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="SqliteAutomiser.Properties" GeneratedClassName="Settings">
   <Profiles />
   <Settings>
-    <Setting Name="DEFCONNSTRING" Type="System.String" Scope="User">
-      <Value Profile="(Default)" />
-    </Setting>
-    <Setting Name="DEFSQLFILEDIR" Type="System.String" Scope="User">
+    <Setting Name="SQLFILEDIR" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
     <Setting Name="IMPORTDECIMALSEPARATOR" Type="System.String" Scope="User">
       <Value Profile="(Default)">.</Value>
     </Setting>
-    <Setting Name="DEFIMPORTDIR" Type="System.String" Scope="User">
+    <Setting Name="IMPORTDIR" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
-    <Setting Name="DEFEXPORTDIR" Type="System.String" Scope="User">
+    <Setting Name="EXPORTDIR" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
     <Setting Name="EXPORTCOLUMNNAMES" Type="System.Boolean" Scope="User">
@@ -22,9 +19,6 @@
     </Setting>
     <Setting Name="EXPORTSEPARATOR" Type="System.String" Scope="User">
       <Value Profile="(Default)">.</Value>
-    </Setting>
-    <Setting Name="DEFCONNSTRING_OPT" Type="System.String" Scope="User">
-      <Value Profile="(Default)" />
     </Setting>
     <Setting Name="IMPORTCOLUMNSEPARATOR" Type="System.Char" Scope="User">
       <Value Profile="(Default)">,</Value>
@@ -51,6 +45,9 @@
 &lt;/ArrayOfString&gt;</Value>
     </Setting>
     <Setting Name="EXPORTTYPE" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
+    <Setting Name="SQLTEMPDIR" Type="System.String" Scope="User">
       <Value Profile="(Default)" />
     </Setting>
   </Settings>

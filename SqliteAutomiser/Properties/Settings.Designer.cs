@@ -26,24 +26,12 @@ namespace SqliteAutomiser.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string DEFCONNSTRING {
+        public string SQLFILEDIR {
             get {
-                return ((string)(this["DEFCONNSTRING"]));
+                return ((string)(this["SQLFILEDIR"]));
             }
             set {
-                this["DEFCONNSTRING"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string DEFSQLFILEDIR {
-            get {
-                return ((string)(this["DEFSQLFILEDIR"]));
-            }
-            set {
-                this["DEFSQLFILEDIR"] = value;
+                this["SQLFILEDIR"] = value;
             }
         }
         
@@ -62,24 +50,24 @@ namespace SqliteAutomiser.Properties {
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string DEFIMPORTDIR {
+        public string IMPORTDIR {
             get {
-                return ((string)(this["DEFIMPORTDIR"]));
+                return ((string)(this["IMPORTDIR"]));
             }
             set {
-                this["DEFIMPORTDIR"] = value;
+                this["IMPORTDIR"] = value;
             }
         }
         
         [global::System.Configuration.UserScopedSettingAttribute()]
         [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
         [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string DEFEXPORTDIR {
+        public string EXPORTDIR {
             get {
-                return ((string)(this["DEFEXPORTDIR"]));
+                return ((string)(this["EXPORTDIR"]));
             }
             set {
-                this["DEFEXPORTDIR"] = value;
+                this["EXPORTDIR"] = value;
             }
         }
         
@@ -104,18 +92,6 @@ namespace SqliteAutomiser.Properties {
             }
             set {
                 this["EXPORTSEPARATOR"] = value;
-            }
-        }
-        
-        [global::System.Configuration.UserScopedSettingAttribute()]
-        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
-        [global::System.Configuration.DefaultSettingValueAttribute("")]
-        public string DEFCONNSTRING_OPT {
-            get {
-                return ((string)(this["DEFCONNSTRING_OPT"]));
-            }
-            set {
-                this["DEFCONNSTRING_OPT"] = value;
             }
         }
         
@@ -193,6 +169,18 @@ namespace SqliteAutomiser.Properties {
             }
             set {
                 this["EXPORTTYPE"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string SQLTEMPDIR {
+            get {
+                return ((string)(this["SQLTEMPDIR"]));
+            }
+            set {
+                this["SQLTEMPDIR"] = value;
             }
         }
     }

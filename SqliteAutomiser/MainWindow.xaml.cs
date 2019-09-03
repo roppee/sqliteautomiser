@@ -75,7 +75,7 @@ namespace SqliteAutomiser
 
         private SQLiteConnection openDBconn()
         {
-            SQLiteConnection conn = new SQLiteConnection(getConnStr());
+            SQLiteConnection conn = new SQLiteConnection(getConnStr(Properties.Settings.Default.DBPATH));
             conn.Open();
             conn.EnableExtensions(true);
             try
@@ -87,22 +87,24 @@ namespace SqliteAutomiser
                 Log("Error while loading " + AppDomain.CurrentDomain.BaseDirectory + "libsqlitefunctions.so");
                 Log(ex.Message.ToString());
             }
-            return conn;
+
+            if(Directory.Exists(Properties.Settings.Default.SQLTEMPDIR)) //depricated pragma statement used here for now, needs changing with new sqlite versions
+            {
+                runSQL(conn, "PRAGMA temp_store_directory  = '" + @Properties.Settings.Default.SQLTEMPDIR + "';");
+                Log("Path for temporary SQL query results set to " + @Properties.Settings.Default.SQLTEMPDIR);
             }
+            else
+                runSQL(conn, "PRAGMA temp_store_directory  = '';");
 
-        private string getConnStr()
-        {
-            return Properties.Settings.Default.DEFCONNSTRING_OPT;
+            return conn;
         }
 
-        private string getNewDBConnStr(string filename)
+        private string getConnStr(string filepath, bool optimisations = true)
         {
-            return "Data Source=" + Properties.Settings.Default.DEFEXPORTDIR + @"\" + filename + ";Version=3;StepAPI =0;NoTXN=0;Timeout=100000;ShortNames=0;LongNames=0;NoCreat=0;NoWCHAR=0;SyncPragma=Off;FKSupport=0;JournalMode=Off;OEMCP=0;LoadExt=;BigInt=0;JDConv=0;";
-        }
-
-        private string getSqlFileDir()
-        {
-            return Properties.Settings.Default.DEFSQLFILEDIR;
+            if (optimisations)
+                return "Data Source=" + filepath + ";Version=3;StepAPI =0;NoTXN=0;Timeout=100000;ShortNames=0;LongNames=0;NoCreat=0;NoWCHAR=0;SyncPragma=Off;FKSupport=0;JournalMode=Off;OEMCP=0;LoadExt=;BigInt=0;JDConv=0;";
+            else
+                return "Data Source=" + filepath + ";Version=3;";
         }
 
         private void processImportDir(SQLiteConnection conn, string importpath, bool checkFilesOnly = false)
@@ -489,6 +491,7 @@ namespace SqliteAutomiser
             }
         }
 
+        //run SQL command from given parameter (textfile ending with .sql or string)
         private void runSQL(SQLiteConnection conn, string sqlFileOrString)
         {
             if (sqlFileOrString.IndexOf(".sql") > -1) //check whether parameter is sql file path
@@ -531,6 +534,7 @@ namespace SqliteAutomiser
             }
         }
 
+        //run SQL command from given parameter (string)
         private void runSQLfromString(SQLiteConnection conn, string[] sql)
         {
                 foreach (string com in sql)
@@ -564,31 +568,31 @@ namespace SqliteAutomiser
                         if (line == "import")
                         {
 
-                            if (Directory.Exists(Properties.Settings.Default.DEFIMPORTDIR + @"\"))
-                                processImportDir(conn, Properties.Settings.Default.DEFIMPORTDIR + @"\");
+                            if (Directory.Exists(Properties.Settings.Default.IMPORTDIR + @"\"))
+                                processImportDir(conn, Properties.Settings.Default.IMPORTDIR + @"\");
                             else
-                                Log("Cannot find import dir: " + Properties.Settings.Default.DEFIMPORTDIR + @"\" + " skipping import command.");
+                                Log("Cannot find import dir: " + Properties.Settings.Default.IMPORTDIR + @"\" + " skipping import command.");
                         }
                         else if (line == "check")
                         {
-                            if (Directory.Exists(Properties.Settings.Default.DEFIMPORTDIR + @"\"))
-                                processImportDir(conn, Properties.Settings.Default.DEFIMPORTDIR + @"\", true);
+                            if (Directory.Exists(Properties.Settings.Default.IMPORTDIR + @"\"))
+                                processImportDir(conn, Properties.Settings.Default.IMPORTDIR + @"\", true);
                             else
-                                Log("Cannot find import dir: " + Properties.Settings.Default.DEFIMPORTDIR + @"\" + " skipping check command.");
+                                Log("Cannot find import dir: " + Properties.Settings.Default.IMPORTDIR + @"\" + " skipping check command.");
                         }
                         else if (exportpath == "")
                         {
-                            if (Directory.Exists(Properties.Settings.Default.DEFSQLFILEDIR + @"\"))
-                                runSQL(conn, Properties.Settings.Default.DEFSQLFILEDIR + @"\" + line);
+                            if (Directory.Exists(Properties.Settings.Default.SQLFILEDIR + @"\"))
+                                runSQL(conn, Properties.Settings.Default.SQLFILEDIR + @"\" + line);
                             else
-                                Log("Cannot find SQL file dir: " + Properties.Settings.Default.DEFSQLFILEDIR + @"\" + " skipping running sql:" + line);
+                                Log("Cannot find SQL file dir: " + Properties.Settings.Default.SQLFILEDIR + @"\" + " skipping running sql:" + line);
                         }
                         else
                         {
-                            if (Directory.Exists(Properties.Settings.Default.DEFSQLFILEDIR + @"\"))
-                                exportSQL(conn, @Properties.Settings.Default.DEFSQLFILEDIR + "/" + line, line.Replace(".sql", ""));
+                            if (Directory.Exists(Properties.Settings.Default.SQLFILEDIR + @"\"))
+                                exportSQL(conn, @Properties.Settings.Default.SQLFILEDIR + @"\" + line, line.Replace(".sql", ""));
                             else
-                                Log("Cannot find SQL file dir: " + Properties.Settings.Default.DEFSQLFILEDIR + @"\" + " skipping exporting sql:" + line);
+                                Log("Cannot find SQL file dir: " + Properties.Settings.Default.SQLFILEDIR + @"\" + " skipping exporting sql:" + line);
                         }
 
                     }
@@ -630,13 +634,13 @@ namespace SqliteAutomiser
             StreamWriter writer = new StreamWriter(Console.OpenStandardOutput()); //default output to console
             if (filename != "")
             {
-                if (Properties.Settings.Default.DEFEXPORTDIR != null) //does not work atm, fix when time
+                if (Properties.Settings.Default.EXPORTDIR != null) //does not work atm, fix when time
                 {
-                    writer = new StreamWriter(@Properties.Settings.Default.DEFEXPORTDIR + "/" + filename);
-                    Log("To file: " + @Properties.Settings.Default.DEFEXPORTDIR + "/" + filename, true);
+                    writer = new StreamWriter(@Properties.Settings.Default.EXPORTDIR + @"\" + filename);
+                    Log("To file: " + @Properties.Settings.Default.EXPORTDIR + @"\" + filename, true);
                 }
                 else
-                    writer = new StreamWriter(@AppDomain.CurrentDomain.BaseDirectory + "/" + filename);
+                    writer = new StreamWriter(@AppDomain.CurrentDomain.BaseDirectory + @"\" + filename);
             }
             writer.Write(getSqlResultsAsString(command));
             writer.Close();
@@ -711,7 +715,7 @@ namespace SqliteAutomiser
         private void writeSqlResultsToDb(SQLiteCommand selectcommand, string filename)
         {
 
-            Log("To file: " + @Properties.Settings.Default.DEFEXPORTDIR + "/" + filename, true);
+            Log("To file: " + @Properties.Settings.Default.EXPORTDIR + @"\" + filename, true);
             SQLiteConnection outputconn = createOutputDb(filename, selectcommand); // executes select command to create new db and output table
             if (outputconn == null)
                 return;
@@ -833,17 +837,17 @@ namespace SqliteAutomiser
         //uses provided filename to create new database, containing output-table with column names in provided SQLiteDataReader
         private SQLiteConnection createOutputDb(string filename, SQLiteCommand selectcommand)
         {
-            Log("Creating new database: " + Properties.Settings.Default.DEFEXPORTDIR + @"\" + filename);
+            Log("Creating new database: " + Properties.Settings.Default.EXPORTDIR + @"\" + filename);
             try
             {
-                SQLiteConnection.CreateFile(Properties.Settings.Default.DEFEXPORTDIR + @"\" + filename);
+                SQLiteConnection.CreateFile(Properties.Settings.Default.EXPORTDIR + @"\" + filename);
             }
             catch(Exception ex)
             {
                 Log(ex.Message.ToString());
                 return null;
             }
-            SQLiteConnection conn = new SQLiteConnection(getNewDBConnStr(filename));
+            SQLiteConnection conn = new SQLiteConnection(getConnStr(Properties.Settings.Default.EXPORTDIR + @"\" + filename));
             conn.Open();
             conn.EnableExtensions(true);
             conn.LoadExtension("libsqlitefunctions.so");
@@ -952,7 +956,7 @@ namespace SqliteAutomiser
             disableButtons();
             Stopwatch sw = new Stopwatch();
             sw.Start();
-            await processWorklist(Properties.Settings.Default.DEFSQLFILEDIR + @"\import_worklist.txt");
+            await processWorklist(Properties.Settings.Default.SQLFILEDIR + @"\import_worklist.txt");
             Log("Import worklist done in: " + sw.Elapsed.Minutes + " Min(s) " + sw.Elapsed.Seconds + " Sec(s)", true);
             enableButtons();
         }
@@ -963,7 +967,7 @@ namespace SqliteAutomiser
             Stopwatch sw = new Stopwatch();
             sw.Start();
 
-            await processWorklist(Properties.Settings.Default.DEFSQLFILEDIR + @"\calculate_worklist.txt");
+            await processWorklist(Properties.Settings.Default.SQLFILEDIR + @"\calculate_worklist.txt");
             Log("Calculate worklist done in: " + sw.Elapsed.Minutes + " Min(s) " + sw.Elapsed.Seconds + " Sec(s)");
             enableButtons();
         }
@@ -974,7 +978,7 @@ namespace SqliteAutomiser
             Stopwatch sw = new Stopwatch();
             sw.Start();
 
-            await processWorklist(Properties.Settings.Default.DEFSQLFILEDIR + @"\export_worklist.txt", Properties.Settings.Default.DEFEXPORTDIR);
+            await processWorklist(Properties.Settings.Default.SQLFILEDIR + @"\export_worklist.txt", Properties.Settings.Default.EXPORTDIR);
             Log("Export worklist done in: " + sw.Elapsed.Minutes + " Min(s) " + sw.Elapsed.Seconds + " Sec(s)", true);
             enableButtons();
         }
@@ -986,11 +990,7 @@ namespace SqliteAutomiser
             if (openFileDialog.ShowDialog() == true)
             {
                 Properties.Settings.Default.DBPATH = openFileDialog.FileName;
-                Properties.Settings.Default.DEFCONNSTRING = "Data Source=" + @Properties.Settings.Default.DBPATH + ";Version=3;";
-                Properties.Settings.Default.DEFCONNSTRING_OPT = "Data Source=" + @Properties.Settings.Default.DBPATH + ";Version=3;StepAPI = 0;NoTXN=0;Timeout=100000;ShortNames=0;LongNames=0;NoCreat=0;NoWCHAR=0;SyncPragma=Off;FKSupport=0;JournalMode=Off;OEMCP=0;LoadExt=;BigInt=0;JDConv=0;";
                 Properties.Settings.Default.Save();
-
-                textBox.AppendText(Properties.Settings.Default.DEFCONNSTRING + '\n');
                 SQLiteConnection conn = openDBconn();
                 textBox.AppendText("Database connection ok" + '\n');
                 conn.Close();
@@ -1004,7 +1004,7 @@ namespace SqliteAutomiser
             openFolderDialog.ShowNewFolderButton = true;
             System.Windows.Forms.DialogResult result = openFolderDialog.ShowDialog();
             if (result == System.Windows.Forms.DialogResult.OK)
-                Properties.Settings.Default.DEFSQLFILEDIR = openFolderDialog.SelectedPath;
+                Properties.Settings.Default.SQLFILEDIR = openFolderDialog.SelectedPath;
 
             Properties.Settings.Default.Save();
             enableButtons();
@@ -1017,7 +1017,7 @@ namespace SqliteAutomiser
             openFolderDialog.ShowNewFolderButton = true;
             System.Windows.Forms.DialogResult result = openFolderDialog.ShowDialog();
             if (result == System.Windows.Forms.DialogResult.OK)
-                Properties.Settings.Default.DEFIMPORTDIR = openFolderDialog.SelectedPath;
+                Properties.Settings.Default.IMPORTDIR = openFolderDialog.SelectedPath;
 
             Properties.Settings.Default.Save();
             enableButtons();
@@ -1029,12 +1029,24 @@ namespace SqliteAutomiser
             openFolderDialog.ShowNewFolderButton = true;
             System.Windows.Forms.DialogResult result = openFolderDialog.ShowDialog();
             if (result == System.Windows.Forms.DialogResult.OK)
-                Properties.Settings.Default.DEFEXPORTDIR = openFolderDialog.SelectedPath;
+                Properties.Settings.Default.EXPORTDIR = openFolderDialog.SelectedPath;
 
             Properties.Settings.Default.Save();
             enableButtons();
         }
-
+        private void button_tempdir_Click(object sender, RoutedEventArgs e)
+        {
+            disableButtons();
+            System.Windows.Forms.FolderBrowserDialog openFolderDialog = new System.Windows.Forms.FolderBrowserDialog();
+            openFolderDialog.ShowNewFolderButton = true;
+            System.Windows.Forms.DialogResult result = openFolderDialog.ShowDialog();
+            if (result == System.Windows.Forms.DialogResult.OK)
+                Properties.Settings.Default.SQLTEMPDIR = openFolderDialog.SelectedPath;
+            else
+                Properties.Settings.Default.SQLTEMPDIR = "";
+            Properties.Settings.Default.Save();
+            enableButtons();
+        }
         private void comboBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (Properties.Settings.Default.EXPORTSEPARATOR == "TAB")
